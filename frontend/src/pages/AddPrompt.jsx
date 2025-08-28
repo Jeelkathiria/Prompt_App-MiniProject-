@@ -1,85 +1,118 @@
-import { useEffect, useState } from "react";
-import { getCategories, addPrompt } from "../api/api";
+import { useState, useEffect } from "react";
 
 export default function AddPrompt() {
-  const [categories, setCategories] = useState([]);
-  const [category, setCategory] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   useEffect(() => {
-    try {
-      const data = getCategories();
-      setCategories(data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load categories");
+    const saved = localStorage.getItem("promptsData");
+    if (saved) {
+      setCategories(Object.keys(JSON.parse(saved)));
+    } else {
+      fetch("/prompts.json")
+        .then((res) => res.json())
+        .then((data) => setCategories(Object.keys(data)));
     }
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    setError("");
-
-    if (!category) return setError("Please select a category");
-    if (!prompt.trim()) return setError("Prompt cannot be empty");
-
-    try {
-      await addPrompt(category, prompt);
-      setMessage("Prompt added successfully!");
-      setPrompt("");
-      setCategory("");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to add prompt");
-    }
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  if (error && !categories.length) return <p className="text-red-500">{error}</p>;
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // ✅ JS-only validation
+    if (category.trim() === "") {
+      return showToast("⚠️ Please select a category.", "error");
+    }
+    if (prompt.trim() === "") {
+      return showToast("⚠️ Prompt cannot be empty.", "error");
+    }
+    if (prompt.length < 10) {
+      return showToast("⚠️ Prompt should be at least 10 characters long.", "error");
+    }
+
+    let updatedData = {};
+    const saved = localStorage.getItem("promptsData");
+    if (saved) {
+      updatedData = JSON.parse(saved);
+    }
+
+    if (!updatedData[category]) updatedData[category] = [];
+
+    if (updatedData[category].includes(prompt)) {
+      return showToast("⚠️ This prompt already exists in this category.", "error");
+    }
+
+    updatedData[category].push(prompt);
+    localStorage.setItem("promptsData", JSON.stringify(updatedData));
+
+    showToast("✅ Prompt added successfully!", "success");
+
+    setPrompt("");
+    setCategory("");
+  };
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Add a New Prompt</h2>
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 relative">
+      <div className="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-lg border border-gray-200">
+        <h2 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">
+          ➕ Add New Prompt
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Category Dropdown */}
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            >
+              <option value="">-- Select a category --</option>
+              {categories.map((cat, idx) => (
+                <option key={idx} value={cat}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {message && <p className="text-green-500">{message}</p>}
-      {error && <p className="text-red-500">{error}</p>}
+          {/* Prompt Textarea */}
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2">Prompt</label>
+            <textarea
+              placeholder="Enter your prompt..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+              rows="5"
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-1 font-semibold">Select Category</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full p-2 border rounded"
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold text-lg shadow-md hover:shadow-xl hover:scale-[1.02] transition-transform"
           >
-            <option value="">-- Select --</option>
-            {categories.map((cat, i) => (
-              <option key={i} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
+            Add Prompt
+          </button>
+        </form>
+      </div>
 
-        <div>
-          <label className="block mb-1 font-semibold">Prompt</label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full p-2 border rounded"
-            placeholder="Enter your prompt..."
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      {/* 🔔 Toast Popup (Top Right) */}
+      {toast.show && (
+        <div
+          className={`fixed top-6 right-6 px-5 py-3 rounded-lg shadow-xl text-white text-sm font-medium transition-all duration-500 ${
+            toast.type === "success" ? "bg-green-600" : "bg-red-600"
+          }`}
         >
-          Add Prompt
-        </button>
-      </form>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
