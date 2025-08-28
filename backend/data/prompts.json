@@ -1,0 +1,18 @@
+{
+  "coding": [
+    "Write a function to reverse a string.",
+    "Explain async/await in JavaScript."
+  ],
+  "idea": [
+    "Create an app for mood tracking.",
+    "Design a solution for reducing food waste."
+  ],
+  "writing": [
+    "Write a short story about AI and humans.",
+    "Describe a perfect day in 2050."
+  ],
+  "design": [
+    "Create a minimal landing page for a startup.",
+    "Redesign a shopping cart page for better UX."
+  ]
+}
