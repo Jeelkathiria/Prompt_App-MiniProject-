@@ -4,17 +4,18 @@ export default function AddPrompt() {
   const [prompt, setPrompt] = useState("");
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
+  const [promptsData, setPromptsData] = useState({});
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
+  // ✅ Fetch categories & prompts from JSON
   useEffect(() => {
-    const saved = localStorage.getItem("promptsData");
-    if (saved) {
-      setCategories(Object.keys(JSON.parse(saved)));
-    } else {
-      fetch("/prompts.json")
-        .then((res) => res.json())
-        .then((data) => setCategories(Object.keys(data)));
-    }
+    fetch("/prompts.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setPromptsData(data);
+        setCategories(Object.keys(data));
+      })
+      .catch((err) => console.error("Error loading prompts:", err));
   }, []);
 
   const showToast = (message, type = "success") => {
@@ -25,7 +26,6 @@ export default function AddPrompt() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // ✅ JS-only validation
     if (category.trim() === "") {
       return showToast("⚠️ Please select a category.", "error");
     }
@@ -36,23 +36,21 @@ export default function AddPrompt() {
       return showToast("⚠️ Prompt should be at least 10 characters long.", "error");
     }
 
-    let updatedData = {};
-    const saved = localStorage.getItem("promptsData");
-    if (saved) {
-      updatedData = JSON.parse(saved);
-    }
-
-    if (!updatedData[category]) updatedData[category] = [];
-
-    if (updatedData[category].includes(prompt)) {
+    // ✅ Check duplicates
+    if (promptsData[category]?.includes(prompt)) {
       return showToast("⚠️ This prompt already exists in this category.", "error");
     }
 
+    // ✅ Update local state (simulate API save)
+    const updatedData = { ...promptsData };
+    if (!updatedData[category]) updatedData[category] = [];
     updatedData[category].push(prompt);
-    localStorage.setItem("promptsData", JSON.stringify(updatedData));
+
+    setPromptsData(updatedData);
 
     showToast("✅ Prompt added successfully!", "success");
 
+    // Clear inputs
     setPrompt("");
     setCategory("");
   };
@@ -103,7 +101,7 @@ export default function AddPrompt() {
         </form>
       </div>
 
-      {/* 🔔 Toast Popup (Top Right) */}
+      {/* 🔔 Toast Popup */}
       {toast.show && (
         <div
           className={`fixed top-6 right-6 px-5 py-3 rounded-lg shadow-xl text-white text-sm font-medium transition-all duration-500 ${

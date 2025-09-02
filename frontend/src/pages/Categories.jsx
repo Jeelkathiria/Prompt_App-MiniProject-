@@ -1,11 +1,5 @@
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
-const categoriesData = [
-  { id: 1, name: "coding", description: "All about programming prompts" },
-  { id: 2, name: "writing", description: "Creative and story prompts" },
-  { id: 3, name: "design", description: "UI/UX and design ideas" },
-  { id: 4, name: "ideas", description: "Random brainstorm prompts" },
-];
 
 function CategoryCard({ cat }) {
   return (
@@ -22,6 +16,24 @@ function CategoryCard({ cat }) {
 }
 
 export default function Categories() {
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetch("/prompts.json")
+      .then((res) => res.json())
+      .then((data) => {
+        // ✅ Only keep the 4 fixed categories if they exist in JSON
+        const fixed = ["coding", "writing", "design", "ideas"];
+        const filtered = fixed.map((cat, idx) => ({
+          id: idx + 1,
+          name: cat,
+          description: `Explore ${cat} related prompts`,
+        }));
+        setCategories(filtered);
+      })
+      .catch((err) => console.error("Error loading categories:", err));
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
@@ -29,7 +41,7 @@ export default function Categories() {
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-        {categoriesData.map((cat) => (
+        {categories.map((cat) => (
           <CategoryCard key={cat.id} cat={cat} />
         ))}
       </div>

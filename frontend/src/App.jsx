@@ -1,3 +1,4 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
@@ -9,10 +10,7 @@ export default function App() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col">
-        {/* Navbar always visible */}
         <Navbar />
-
-        {/* Main Routes */}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/categories" element={<Categories />} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 export default function Prompts() {
@@ -6,33 +6,34 @@ export default function Prompts() {
   const [prompts, setPrompts] = useState([]);
 
   useEffect(() => {
-    // Check if localStorage has updated prompts
-    const saved = localStorage.getItem("promptsData");
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setPrompts(parsed[category] || []);
-    } else {
-      // Fallback: fetch default from public/prompts.json
-      fetch("/prompts.json")
-        .then((res) => res.json())
-        .then((data) => {
-          setPrompts(data[category] || []);
-        });
-    }
+    // ✅ Fetch prompts from API (here public/prompts.json acts like API)
+    fetch("/prompts.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setPrompts(data[category] || []);
+      })
+      .catch((err) => console.error("Error loading prompts:", err));
   }, [category]);
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-4 capitalize">{category} Prompts</h2>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h2 className="text-3xl font-bold text-center text-gray-800 mb-8 capitalize">
+        {category} Prompts
+      </h2>
+
       {prompts.length > 0 ? (
-        <ul className="space-y-2">
-          {prompts.map((p, i) => (
-            <li key={i} className="bg-gray-100 p-3 rounded shadow">{p}</li>
+        <ul className="max-w-3xl mx-auto space-y-4">
+          {prompts.map((p, idx) => (
+            <li
+              key={idx}
+              className="bg-white p-4 rounded-lg shadow hover:shadow-md"
+            >
+              {p}
+            </li>
           ))}
         </ul>
       ) : (
-        <p>No prompts available.</p>
+        <p className="text-center text-gray-500">No prompts available.</p>
       )}
     </div>
   );
