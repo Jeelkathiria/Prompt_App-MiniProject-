@@ -1,116 +1,130 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { addPrompt, getCategories } from "../api";
 
 export default function AddPrompt() {
-  const [prompt, setPrompt] = useState("");
-  const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
-  const [promptsData, setPromptsData] = useState({});
-  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [form, setForm] = useState({
+    title: "",
+    category: "",
+    description: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [success, setSuccess] = useState(false);
 
-  // ✅ Fetch categories & prompts from JSON
+  // Fetch categories from MongoDB
   useEffect(() => {
-    fetch("/prompts.json")
-      .then((res) => res.json())
-      .then((data) => {
-        setPromptsData(data);
-        setCategories(Object.keys(data));
-      })
-      .catch((err) => console.error("Error loading prompts:", err));
+    async function fetchCategories() {
+      const data = await getCategories();
+      const names = data.map((c) => c.name);
+      setCategories(names);
+      setForm((prev) => ({ ...prev, category: names[0] || "" }));
+      setLoading(false);
+    }
+    fetchCategories();
   }, []);
 
-  const showToast = (message, type = "success") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (category.trim() === "") {
-      return showToast("⚠️ Please select a category.", "error");
-    }
-    if (prompt.trim() === "") {
-      return showToast("⚠️ Prompt cannot be empty.", "error");
-    }
-    if (prompt.length < 10) {
-      return showToast("⚠️ Prompt should be at least 10 characters long.", "error");
-    }
-
-    // ✅ Check duplicates
-    if (promptsData[category]?.includes(prompt)) {
-      return showToast("⚠️ This prompt already exists in this category.", "error");
-    }
-
-    // ✅ Update local state (simulate API save)
-    const updatedData = { ...promptsData };
-    if (!updatedData[category]) updatedData[category] = [];
-    updatedData[category].push(prompt);
-
-    setPromptsData(updatedData);
-
-    showToast("✅ Prompt added successfully!", "success");
-
-    // Clear inputs
-    setPrompt("");
-    setCategory("");
+    if (!form.category) return alert("Please select a category first.");
+    await addPrompt(form);
+    setSuccess(true);
+    setForm({ title: "", category: categories[0] || "", description: "" });
+    setTimeout(() => setSuccess(false), 2500);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-600 text-lg animate-pulse">
+          Fetching categories...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 relative">
-      <div className="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-lg border border-gray-200">
-        <h2 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">
-          ➕ Add New Prompt
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Category Dropdown */}
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            >
-              <option value="">-- Select a category --</option>
-              {categories.map((cat, idx) => (
-                <option key={idx} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-white to-blue-50">
+      <div className="w-full max-w-md backdrop-blur-lg bg-white/60 border border-gray-200 rounded-2xl shadow-lg p-8 transition-transform hover:scale-[1.01]">
+        <h1 className="text-3xl font-bold text-gray-800 text-center mb-6">
+          🧠 Add a New Prompt
+        </h1>
 
-          {/* Prompt Textarea */}
+        {success && (
+          <div className="bg-green-100 border border-green-300 text-green-700 text-center p-2 mb-4 rounded-md">
+            ✅ Prompt added successfully!
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Title input */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-2">Prompt</label>
-            <textarea
-              placeholder="Enter your prompt..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
-              rows="5"
+            <label className="block text-left font-semibold mb-1 text-gray-700">
+              Title
+            </label>
+            <input
+              type="text"
+              name="title"
+              placeholder="Enter your prompt title"
+              value={form.title}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              required
             />
           </div>
 
-          {/* Submit Button */}
+          {/* Category dropdown */}
+          <div>
+            <label className="block text-left font-semibold mb-1 text-gray-700">
+              Category
+            </label>
+            <select
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              required
+            >
+              {categories.length === 0 ? (
+                <option>No categories available</option>
+              ) : (
+                categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* Description textarea */}
+          <div>
+            <label className="block text-left font-semibold mb-1 text-gray-700">
+              Description
+            </label>
+            <textarea
+              name="description"
+              placeholder="Describe the prompt idea..."
+              value={form.description}
+              onChange={handleChange}
+              rows="4"
+              className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-400 focus:outline-none resize-none"
+              required
+            />
+          </div>
+
+          {/* Submit button */}
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-semibold text-lg shadow-md hover:shadow-xl hover:scale-[1.02] transition-transform"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition-all duration-200 transform hover:-translate-y-[2px]"
           >
             Add Prompt
           </button>
         </form>
       </div>
-
-      {/* 🔔 Toast Popup */}
-      {toast.show && (
-        <div
-          className={`fixed top-6 right-6 px-5 py-3 rounded-lg shadow-xl text-white text-sm font-medium transition-all duration-500 ${
-            toast.type === "success" ? "bg-green-600" : "bg-red-600"
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }
