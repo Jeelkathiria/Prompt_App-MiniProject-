@@ -1,14 +1,15 @@
 // frontend/src/api.js
 import axios from "axios";
 
+// -----------------------------------------------------
+// 🌐 Base Configuration
+// -----------------------------------------------------
 const API_BASE = "http://localhost:5000/api";
 
-// -----------------------------------------------------
-// 🧩 Using a single Axios instance for all requests
-// -----------------------------------------------------
+// Create a single Axios instance for all requests
 const API = axios.create({ baseURL: API_BASE });
 
-// Attach token automatically to all requests
+// Automatically attach JWT token to every request
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem("token");
   if (token) req.headers.Authorization = `Bearer ${token}`;
@@ -16,66 +17,89 @@ API.interceptors.request.use((req) => {
 });
 
 // -----------------------------------------------------
-// 🧠 PROMPTS API
+// 🔐 AUTH API (Register / Login)
 // -----------------------------------------------------
-export const getPrompts = async () => {
-  const res = await API.get("/prompts");
-  return res.data;
+export const registerUser = async (formData) => {
+  try {
+    const res = await API.post("/auth/register", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Registration failed" };
+  }
 };
 
-export const addPrompt = async (data) => {
-  const res = await API.post("/prompts", data);
-  return res.data;
+export const loginUser = async (userData) => {
+  try {
+    const res = await API.post("/auth/login", userData);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Login failed" };
+  }
+};
+
+// -----------------------------------------------------
+// 🧩 PROMPTS API
+// -----------------------------------------------------
+export const getPrompts = async () => {
+  try {
+    const res = await API.get("/prompts");
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Failed to fetch prompts" };
+  }
+};
+
+export const addPrompt = async (formData) => {
+  try {
+    const res = await API.post("/prompts", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Failed to add prompt" };
+  }
 };
 
 // -----------------------------------------------------
 // 🧱 CATEGORY API
 // -----------------------------------------------------
 export const getCategories = async () => {
-  const res = await API.get("/categories");
-  return res.data;
+  try {
+    const res = await API.get("/categories");
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Failed to fetch categories" };
+  }
 };
 
 export const addCategory = async (name) => {
-  const res = await API.post("/categories", { name });
-  return res.data;
+  try {
+    const res = await API.post("/categories", { name });
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Failed to add category" };
+  }
 };
 
 // -----------------------------------------------------
-// 🔐 AUTH API (Login / Register)
+// 💬 COMMENTS API
 // -----------------------------------------------------
-
-
-export const registerUser = async (formData) => {
-  const res = await API.post("/auth/register", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return res.data;
+export const getComments = async (promptId) => {
+  try {
+    const res = await API.get(`/prompts/${promptId}/comments`);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Failed to fetch comments" };
+  }
 };
 
-export const loginUser = async (userData) => {
-  const res = await API.post("/auth/login", userData);
-  return res.data;
-};
-
-
-//All Prompts
-export const getAllPrompts = async () => {
-  const res = await API.get("/allPrompts");
-  return res.data;
-};
-
-export const getComments = async (id) => {
-  const res = await fetch(`http://localhost:5000/api/prompts/${id}`);
-  const data = await res.json();
-  return data.comments || [];
-};
-
-export const addComment = async (id, name, text) => {
-  const res = await fetch(`http://localhost:5000/api/prompts/${id}/comments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, text }),
-  });
-  return await res.json();
+export const addComment = async (promptId, comment) => {
+  try {
+    const res = await API.post(`/prompts/${promptId}/comments`, comment);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || { error: "Failed to add comment" };
+  }
 };

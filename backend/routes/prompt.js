@@ -63,7 +63,7 @@ router.post("/", verifyToken, upload.single("image"), async (req, res) => {
       description,
       resultOutput,
       image,
-      createdBy: req.user.email, // link by email
+      createdBy: req.user.email,
       certificate: user.certificate || null,
       createdAt: new Date(),
     };
@@ -81,14 +81,12 @@ router.post("/", verifyToken, upload.single("image"), async (req, res) => {
 
 // ----------------------------
 // 📚 GET all prompts (with user info)
-
-// routes/prompt.js
+// ----------------------------
 router.get("/", async (req, res) => {
   try {
     const db = await connect();
     const prompts = await db.collection("prompts").find().sort({ createdAt: -1 }).toArray();
 
-    // Attach user details manually
     for (let prompt of prompts) {
       const user = await db.collection("users").findOne({ email: prompt.createdBy });
       prompt.user = user
@@ -103,20 +101,49 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/:id/comments", async (req, res) => {
+// ----------------------------
+// 💬 COMMENTS SECTION
+// ----------------------------
+
+// 🧠 Get comments for a specific prompt
+router.get("/:id/comments", async (req, res) => {
   try {
-    const { name, text } = req.body;
-    const prompt = await Prompt.findById(req.params.id);
-    if (!prompt) return res.status(404).json({ message: "Prompt not found" });
+    const db = await connect();
+    const comments = await db
+      .collection("comments")
+      .find({ promptId: req.params.id })
+      .sort({ createdAt: -1 })
+      .toArray();
 
-    prompt.comments.push({ name, text });
-    await prompt.save();
-
-    res.json(prompt.comments);
+    res.json(comments);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching comments:", err);
+    res.status(500).json({ error: "Failed to fetch comments" });
   }
 });
 
+// 💬 Add a new comment
+router.post("/:id/comments", async (req, res) => {
+  try {
+    const { text, author } = req.body;
+    if (!text || !author) {
+      return res.status(400).json({ error: "Author and text are required" });
+    }
+
+    const db = await connect();
+    const newComment = {
+      promptId: req.params.id,
+      text,
+      author,
+      createdAt: new Date(),
+    };
+
+    await db.collection("comments").insertOne(newComment);
+    res.json(newComment);
+  } catch (err) {
+    console.error("Error adding comment:", err);
+    res.status(500).json({ error: "Failed to add comment" });
+  }
+});
 
 module.exports = router;
