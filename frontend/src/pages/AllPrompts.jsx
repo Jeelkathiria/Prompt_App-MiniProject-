@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { getAllPrompts } from "../api";
-import { Clipboard, Check, X, Loader2, Search } from "lucide-react";
+import {
+  Clipboard,
+  Check,
+  X,
+  Loader2,
+  Search,
+  ExternalLink,
+} from "lucide-react";
 
 export default function AllPrompts() {
   const [prompts, setPrompts] = useState([]);
@@ -12,14 +19,14 @@ export default function AllPrompts() {
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [search, setSearch] = useState("");
 
-  const promptsPerPage = 16; // ✅ 4x4 grid per page
+  const promptsPerPage = 16;
 
   useEffect(() => {
     const fetchPrompts = async () => {
       try {
         const data = await getAllPrompts();
         setPrompts(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load prompts. Please try again later.");
       } finally {
         setLoading(false);
@@ -28,14 +35,12 @@ export default function AllPrompts() {
     fetchPrompts();
   }, []);
 
-  // ✅ Filter logic
   const filteredPrompts = prompts.filter(
     (p) =>
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase())
+      p.title?.toLowerCase().includes(search.toLowerCase()) ||
+      p.description?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ✅ Pagination
   const indexOfLast = currentPage * promptsPerPage;
   const indexOfFirst = indexOfLast - promptsPerPage;
   const currentPrompts = filteredPrompts.slice(indexOfFirst, indexOfLast);
@@ -57,7 +62,6 @@ export default function AllPrompts() {
     }
   };
 
-  // ✅ Loader
   if (loading)
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -65,7 +69,6 @@ export default function AllPrompts() {
       </div>
     );
 
-  // ✅ Error
   if (error)
     return (
       <div className="flex justify-center items-center min-h-screen text-red-600 font-medium">
@@ -79,7 +82,7 @@ export default function AllPrompts() {
         All Prompts
       </h1>
 
-      {/* ✅ Search Bar */}
+      {/* 🔍 Search Bar */}
       <div className="flex justify-center mb-8">
         <div className="relative w-[60%]">
           <input
@@ -93,7 +96,7 @@ export default function AllPrompts() {
         </div>
       </div>
 
-      {/* ✅ Prompts Grid */}
+      {/* 🧩 Prompts Grid */}
       {filteredPrompts.length === 0 ? (
         <p className="text-center text-gray-600">No prompts found.</p>
       ) : (
@@ -101,18 +104,22 @@ export default function AllPrompts() {
           {currentPrompts.map((prompt) => (
             <div
               key={prompt._id}
-              onClick={() => setSelectedPrompt(prompt)}
-              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-5 hover:shadow-lg transition cursor-pointer relative border border-gray-100"
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-5 hover:shadow-lg transition relative border border-gray-100 flex flex-col justify-between"
             >
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">
-                {prompt.title}
-              </h2>
-              <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                {prompt.description}
-              </p>
-              <p className="text-blue-600 text-xs font-medium">
-                Category: {prompt.category || "Uncategorized"}
-              </p>
+              <div
+                onClick={() => setSelectedPrompt(prompt)}
+                className="cursor-pointer"
+              >
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                  {prompt.title}
+                </h2>
+                <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                  {prompt.description}
+                </p>
+                <p className="text-blue-600 text-xs font-medium">
+                  Category: {prompt.category || "Uncategorized"}
+                </p>
+              </div>
 
               {/* ✅ Copy Button */}
               <button
@@ -134,12 +141,20 @@ export default function AllPrompts() {
                   )}
                 </div>
               </button>
+
+              {/* 🔗 Result Link */}
+              <button
+                onClick={() => setSelectedPrompt(prompt)}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-end mt-3"
+              >
+                Result <ExternalLink className="ml-1 w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* ✅ Pagination */}
+      {/* 🔄 Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center mt-10 gap-4">
           <button
@@ -172,15 +187,25 @@ export default function AllPrompts() {
         </div>
       )}
 
-      {/* ✅ Popup */}
+      {/* 🪄 Popup (Full Details) */}
       {selectedPrompt && (
         <div
-          className="fixed inset-0 bg-gradient-to-br from-gray-200/90 via-gray-300/80 to-gray-400/70 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-gray-900/70 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedPrompt(null);
+          }}
+        ></div>
+      )}
+
+      {/* 🪄 Popup (Full Details) */}
+      {selectedPrompt && (
+        <div
+          className="fixed inset-0 bg-gray-900/70 flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedPrompt(null);
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative animate-fadeIn overflow-y-auto max-h-[90vh]">
             <button
               onClick={() => setSelectedPrompt(null)}
               className="absolute top-3 right-3 text-gray-600 hover:text-red-600 transition"
@@ -188,27 +213,76 @@ export default function AllPrompts() {
               <X className="w-6 h-6" />
             </button>
 
+            {/* --- Basic Info --- */}
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {selectedPrompt.title}
+              {selectedPrompt.title || "Untitled"}
             </h2>
-            <p className="text-blue-700 text-sm font-medium mb-3">
+            <p className="text-blue-700 text-sm font-medium mb-4">
               Category: {selectedPrompt.category || "Uncategorized"}
             </p>
-            <p className="text-gray-700 leading-relaxed">
-              {selectedPrompt.description}
+
+            <p className="text-gray-700 leading-relaxed mb-3">
+              <strong>Description:</strong>{" "}
+              {selectedPrompt.description || "No description provided."}
             </p>
+
+            {selectedPrompt.resultOutput && (
+              <p className="text-gray-700 leading-relaxed mb-3">
+                <strong>Result Output:</strong>{" "}
+                {selectedPrompt.resultOutput || "N/A"}
+              </p>
+            )}
+
+            {selectedPrompt.image && (
+              <div className="my-3">
+                <img
+                  src={`http://localhost:5000${selectedPrompt.image}`}
+                  alt="Result"
+                  className="w-full rounded-xl shadow-md"
+                />
+              </div>
+            )}
+
+            {/* --- Authorized Section --- */}
+            <div className="border-t border-gray-300 mt-6 pt-5 text-sm text-gray-700">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <span role="img" aria-label="id">
+                  🪪
+                </span>{" "}
+                Authorized Person
+              </h3>
+
+
+              {/* Authorized Certificate */}
+              {selectedPrompt.certificate && (
+                <div className="my-3">
+                  <p className="font-medium mb-1">Authorized Certificate:</p>
+                  <img
+                    src={`http://localhost:5000${selectedPrompt.certificate}`}
+                    alt="Authorized Certificate"
+                    className="rounded-lg shadow-md w-full"
+                  />
+                </div>
+              )}
+
+              {/* Authorization Email */}
+              <p className="mb-2">
+                <strong>Authorization (Email):</strong>{" "}
+                {selectedPrompt.createdBy || "Unknown"}
+              </p>
+
+
+              <p>
+                <strong>Created At:</strong>{" "}
+                {selectedPrompt.createdAt
+                  ? new Date(selectedPrompt.createdAt).toLocaleTimeString()
+                  : "Unknown"}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ✅ Copied Toast */}
-      {showToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full shadow-md animate-fadeInOut z-50">
-          Copied!
-        </div>
-      )}
-
-      {/* ✅ Animations */}
       <style>
         {`
           @keyframes fadeInOut {

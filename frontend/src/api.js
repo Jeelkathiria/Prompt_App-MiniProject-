@@ -64,3 +64,18 @@ export const getAllPrompts = async () => {
   const res = await API.get("/allPrompts");
   return res.data;
 };
+
+export const getComments = async (id) => {
+  const res = await fetch(`http://localhost:5000/api/prompts/${id}`);
+  const data = await res.json();
+  return data.comments || [];
+};
+
+export const addComment = async (id, name, text) => {
+  const res = await fetch(`http://localhost:5000/api/prompts/${id}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, text }),
+  });
+  return await res.json();
+};

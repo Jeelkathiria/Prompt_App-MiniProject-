@@ -4,7 +4,6 @@ const multer = require("multer");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const { connect } = require("../connect");
-const Prompt = require("../models/Prompt"); // ✅ make sure file exists
 
 const router = express.Router();
 
@@ -52,7 +51,6 @@ router.post("/", verifyToken, upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // ✅ Verify user existence (if you store users in DB)
     const db = await connect();
     const user = await db.collection("users").findOne({ email: req.user.email });
     if (!user) {
@@ -65,12 +63,16 @@ router.post("/", verifyToken, upload.single("image"), async (req, res) => {
       description,
       resultOutput,
       image,
-      createdBy: req.user.email,
+      createdBy: req.user.email, // link by email
+      certificate: user.certificate || null,
       createdAt: new Date(),
     };
 
-    const result = await db.collection("prompts").insertOne(newPrompt);
-    res.status(201).json({ message: "Prompt added successfully", data: result });
+    await db.collection("prompts").insertOne(newPrompt);
+    res.status(201).json({
+      message: "Prompt added successfully",
+      data: newPrompt,
+    });
   } catch (err) {
     console.error("Error adding prompt:", err);
     res.status(500).json({ error: "Server error while adding prompt" });
@@ -78,16 +80,43 @@ router.post("/", verifyToken, upload.single("image"), async (req, res) => {
 });
 
 // ----------------------------
-// 📚 GET all prompts (optional public route)
-// ----------------------------
+// 📚 GET all prompts (with user info)
+
+// routes/prompt.js
 router.get("/", async (req, res) => {
   try {
     const db = await connect();
-    const prompts = await db.collection("prompts").find().toArray();
+    const prompts = await db.collection("prompts").find().sort({ createdAt: -1 }).toArray();
+
+    // Attach user details manually
+    for (let prompt of prompts) {
+      const user = await db.collection("users").findOne({ email: prompt.createdBy });
+      prompt.user = user
+        ? { name: user.name, email: user.email, certificate: user.certificate }
+        : { name: "Unknown", email: "Unknown", certificate: null };
+    }
+
     res.json(prompts);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch prompts" });
+    console.error("Error fetching prompts:", err);
+    res.status(500).json({ message: err.message });
   }
 });
+
+router.post("/:id/comments", async (req, res) => {
+  try {
+    const { name, text } = req.body;
+    const prompt = await Prompt.findById(req.params.id);
+    if (!prompt) return res.status(404).json({ message: "Prompt not found" });
+
+    prompt.comments.push({ name, text });
+    await prompt.save();
+
+    res.json(prompt.comments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;

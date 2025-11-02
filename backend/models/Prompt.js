@@ -1,14 +1,24 @@
-// backend/models/Prompt.js
+// models/Prompt.js
 const mongoose = require("mongoose");
-
-const PromptSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  category: { type: String, required: true },
-  resultOutput: { type: String },
-  image: { type: String },
-  userId: { type: String },
+// models/Prompt.js
+const CommentSchema = new mongoose.Schema({
+  name: String,
+  text: String,
   createdAt: { type: Date, default: Date.now },
 });
 
+const PromptSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  category: String,
+  resultOutput: String,
+  image: String,
+  certificate: String,
+  createdBy: String,
+  createdAt: { type: Date, default: Date.now },
+  comments: [CommentSchema],
+});
+
+
 module.exports = mongoose.model("Prompt", PromptSchema);
+

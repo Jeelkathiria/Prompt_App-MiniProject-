@@ -1,18 +1,15 @@
 // routes/auth.js
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const { connect } = require("../connect");
 const multer = require("multer");
 const path = require("path");
-require("dotenv").config();
-
+const { connect } = require("../connect");
 const router = express.Router();
 
-// 🧩 Multer Storage Setup
+// 🧩 Multer Storage Setup (for authorized user certificates)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/certificates");
+    cb(null, path.join(__dirname, "../certificates")); // ✅ dedicated folder
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -21,30 +18,33 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// 🧩 REGISTER
-// routes/auth.js
+// 🧩 REGISTER (Authorized User)
 router.post("/register", upload.single("certificate"), async (req, res) => {
   try {
     const db = await connect();
     const { name, email, password, field, newField } = req.body;
-    const certificate = req.file ? req.file.filename : null;
+
+    // ✅ Save the full relative path so frontend can load it
+    const certificatePath = req.file
+      ? `/uploads/${req.file.filename}`
+      : null;
 
     // 1️⃣ Basic validation
     if (!name || !email || !password)
       return res.status(400).json({ message: "All fields required" });
 
     // 2️⃣ Conditional validation logic
-    if (certificate && !field)
+    if (certificatePath && !field)
       return res
         .status(400)
         .json({ message: "Category required when uploading certificate" });
 
-    if (field && field !== "Other" && !certificate)
+    if (field && field !== "Other" && !certificatePath)
       return res
         .status(400)
         .json({ message: "Certificate required when selecting a category" });
 
-    if (field === "Other" && (!newField || !certificate))
+    if (field === "Other" && (!newField || !certificatePath))
       return res.status(400).json({
         message:
           "Both new field name and certificate required for 'Other' category",
@@ -60,13 +60,10 @@ router.post("/register", upload.single("certificate"), async (req, res) => {
 
     // 5️⃣ If category doesn’t exist, insert it into Categories
     if (finalField) {
-      // Convert to lowercase for case-insensitive matching
       const normalizedField = finalField.trim().toLowerCase();
-
-      // Find category ignoring case
-      const existingCategory = await db.collection("categories").findOne({
-        normalized: normalizedField,
-      });
+      const existingCategory = await db
+        .collection("categories")
+        .findOne({ normalized: normalizedField });
 
       if (!existingCategory) {
         await db.collection("categories").insertOne({
@@ -78,12 +75,13 @@ router.post("/register", upload.single("certificate"), async (req, res) => {
 
     // 6️⃣ Hash password and save user
     const hashed = await bcrypt.hash(password, 10);
+
     await db.collection("users").insertOne({
       name,
       email,
       password: hashed,
       field: finalField || null,
-      certificate,
+      certificate: certificatePath, // ✅ stored in uploads/certificates/
     });
 
     res.status(201).json({ message: "User created successfully" });
@@ -92,6 +90,9 @@ router.post("/register", upload.single("certificate"), async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+
+
 
 // 🧩 LOGIN
 router.post("/login", async (req, res) => {

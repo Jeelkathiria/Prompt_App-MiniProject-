@@ -94,15 +94,31 @@ app.post("/api/categories", async (req, res) => {
 });
 
 // ✅ Public “All Prompts” endpoint
+// ✅ Public “All Prompts” endpoint
 app.get("/api/allPrompts", async (req, res) => {
   try {
     const db = await connect();
-    const prompts = await db.collection("prompts").find().toArray();
+    const prompts = await db
+      .collection("prompts")
+      .find({}, {
+        projection: {
+          title: 1,
+          category: 1,
+          description: 1,
+          resultOutput: 1,
+          image: 1,
+          createdBy: 1,
+          certificate: 1,
+          createdAt: 1,
+        },
+      })
+      .toArray();
     res.json(prompts);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch all prompts" });
   }
 });
+
 
 // ✅ Default route for sanity check
 app.get("/", (req, res) => {
