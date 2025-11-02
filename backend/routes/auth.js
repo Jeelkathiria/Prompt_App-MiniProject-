@@ -5,6 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const { connect } = require("../connect");
 const router = express.Router();
+const jwt = require("jsonwebtoken"); 
 
 // 🧩 Multer Storage Setup (for authorized user certificates)
 const storage = multer.diskStorage({
@@ -91,6 +92,19 @@ router.post("/register", upload.single("certificate"), async (req, res) => {
   }
 });
 
+// ✅ Verify token route
+router.get("/verify", (req, res) => {
+  const authHeader = req.header("Authorization");
+  if (!authHeader) return res.json({ valid: false });
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    res.json({ valid: true, user: decoded });
+  } catch {
+    res.json({ valid: false });
+  }
+});
 
 
 

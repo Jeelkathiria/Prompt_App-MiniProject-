@@ -48,7 +48,7 @@ function App() {
         <Route
           path="/add"
           element={
-            <ProtectedRoute expertOnly>
+            <ProtectedRoute>
               <AddPrompt />
             </ProtectedRoute>
           }
