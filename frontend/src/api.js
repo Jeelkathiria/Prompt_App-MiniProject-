@@ -44,8 +44,12 @@ export const addCategory = async (name) => {
 // -----------------------------------------------------
 // 🔐 AUTH API (Login / Register)
 // -----------------------------------------------------
-export const registerUser = async (userData) => {
-  const res = await API.post("/auth/register", userData);
+
+
+export const registerUser = async (formData) => {
+  const res = await API.post("/auth/register", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return res.data;
 };
 

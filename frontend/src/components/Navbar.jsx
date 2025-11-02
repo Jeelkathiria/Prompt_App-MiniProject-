@@ -1,29 +1,45 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [userField, setUserField] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setIsLoggedIn(!!localStorage.getItem("token"));
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      setIsLoggedIn(!!token);
+      if (token) {
+        try {
+          const decoded = jwtDecode(token);
+          setUserField(decoded.field || null);
+        } catch (err) {
+          console.error("Invalid token");
+        }
+      } else {
+        setUserField(null);
+      }
     };
 
-    // Listen to both actual storage changes and custom login/logout events
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("authChange", handleStorageChange);
+    window.addEventListener("storage", checkAuth);
+    window.addEventListener("authChange", checkAuth);
+
+    checkAuth(); // initial check
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("authChange", handleStorageChange);
+      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("authChange", checkAuth);
     };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.dispatchEvent(new Event("authChange")); // 👈 also notify Navbar
+    window.dispatchEvent(new Event("authChange"));
     setIsLoggedIn(false);
+    setUserField(null);
     navigate("/");
   };
 
@@ -46,9 +62,13 @@ export default function Navbar() {
             <Link to="/categories" className="hover:underline">
               Categories
             </Link>
-            <Link to="/add" className="hover:underline">
-              Add Prompt
-            </Link>
+
+            {/* ✅ Only show Add Prompt if user has expert field */}
+            {userField && (
+              <Link to="/add" className="hover:underline">
+                Add Prompt
+              </Link>
+            )}
           </>
         )}
 
