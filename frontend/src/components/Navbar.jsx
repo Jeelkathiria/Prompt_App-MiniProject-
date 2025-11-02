@@ -20,13 +20,12 @@ export default function Navbar() {
     };
   }, []);
 
-const handleLogout = () => {
-  localStorage.removeItem("token");
-  window.dispatchEvent(new Event("authChange")); // 👈 also notify Navbar
-  setIsLoggedIn(false);
-  navigate("/");
-};
-
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.dispatchEvent(new Event("authChange")); // 👈 also notify Navbar
+    setIsLoggedIn(false);
+    navigate("/");
+  };
 
   return (
     <nav className="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md">
@@ -41,6 +40,9 @@ const handleLogout = () => {
 
         {isLoggedIn && (
           <>
+            <Link to="/all-prompts" className="hover:underline">
+              All Prompts
+            </Link>
             <Link to="/categories" className="hover:underline">
               Categories
             </Link>

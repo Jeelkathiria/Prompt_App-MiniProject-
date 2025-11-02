@@ -74,3 +74,14 @@ app.listen(PORT, async () => {
   console.log(`✅ Connected to MongoDB`);
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// 🧠 ALL PROMPTS (for AllPrompts.jsx page)
+app.get("/api/allPrompts", async (req, res) => {
+  try {
+    const db = await connect();
+    const prompts = await db.collection("prompts").find().toArray();
+    res.json(prompts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch all prompts" });
+  }
+});

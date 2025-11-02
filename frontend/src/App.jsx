@@ -3,7 +3,8 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Categories from "./pages/Categories";
 import AddPrompt from "./pages/AddPrompt";
-import Prompts from "./pages/Prompts";
+import AllPrompts from "./pages/AllPrompts";
+import Prompts from "./pages/Prompts"; // ✅ Added missing import
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -13,12 +14,19 @@ function App() {
     <Router>
       <Navbar />
       <Routes>
+        {/* 🌐 Public Route */}
         <Route path="/" element={<Home />} />
-        <Route path="/prompts/:category" element={<Prompts />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
 
-        {/* ✅ Protected Routes */}
+        {/* 🔐 Protected Routes */}
+        <Route
+          path="/all-prompts"
+          element={
+            <ProtectedRoute>
+              <AllPrompts />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/categories"
           element={
@@ -27,6 +35,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/prompts/:category"
+          element={
+            <ProtectedRoute>
+              <Prompts />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/add"
           element={
@@ -35,6 +53,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* 🧾 Auth Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </Router>
   );
