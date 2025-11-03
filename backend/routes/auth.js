@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
 // 🧩 Multer Storage Setup (for authorized user certificates)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../certificates")); // ✅ dedicated folder
+    cb(null, path.join(__dirname, "../uploads")); // ✅ dedicated folder
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
