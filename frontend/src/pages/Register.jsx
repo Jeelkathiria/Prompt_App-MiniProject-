@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { registerUser, getCategories, addCategory } from "../api";
+import { registerUser, getCategories } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { UserPlus, Info } from "lucide-react";
 
@@ -15,6 +15,10 @@ export default function Register() {
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState("");
   const [showInfo, setShowInfo] = useState(false);
+  const [upiID, setUpiID] = useState("");
+  const [bank, setBank] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [paymentDone, setPaymentDone] = useState(false);
   const navigate = useNavigate();
 
   // ✅ Fetch categories
@@ -30,33 +34,42 @@ export default function Register() {
     fetchCategories();
   }, []);
 
-  // ✅ Handle form submit with all 3 rules
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  // ✅ Handle registration
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("email", form.email);
-    formData.append("password", form.password);
-    formData.append("field", form.field);
-    formData.append("newField", form.newField);
-    if (form.certificate) {
-      formData.append("certificate", form.certificate);
+    if (!paymentDone) {
+      setError("Please complete payment before registering.");
+      return;
     }
 
-    // 👇 TEMP: See what we are sending
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
+    try {
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("email", form.email);
+      formData.append("password", form.password);
+      formData.append("field", form.field);
+      formData.append("newField", form.newField);
+      if (form.certificate) formData.append("certificate", form.certificate);
+
+      await registerUser(formData);
+      navigate("/login");
+    } catch (err) {
+      setError("User already exists or invalid data");
     }
+  };
 
-    await registerUser(formData);
-    navigate("/login");
-  } catch (err) {
-    setError("User already exists or invalid data");
-  }
-};
-
+  // ✅ Handle payment
+  const handlePayment = (e) => {
+    e.preventDefault();
+    if (!upiID.trim()) {
+      setPaymentStatus("Please enter a valid UPI ID.");
+      setPaymentDone(false);
+      return;
+    }
+    setPaymentStatus("Payment successful! Receipt will be mailed after generation.");
+    setPaymentDone(true);
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
@@ -67,6 +80,7 @@ const handleSubmit = async (e) => {
 
         {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
 
+        {/* Registration Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -124,10 +138,7 @@ const handleSubmit = async (e) => {
           {/* Certificate Upload */}
           <div className="relative">
             <label className="block text-gray-700 mb-1 flex items-center gap-2">
-              <span>
-                Attach Certificate{" "}
-                {(form.field && "(required)") || (form.certificate && "(required category)")}
-              </span>
+              <span>Attach Certificate</span>
               <div
                 className="relative"
                 onMouseEnter={() => setShowInfo(true)}
@@ -137,29 +148,80 @@ const handleSubmit = async (e) => {
                 {showInfo && (
                   <div className="absolute top-6 left-0 bg-gray-800 text-white text-xs rounded-md px-3 py-2 shadow-lg w-64 z-10">
                     Upload your professional certificate.
-                    Required if you select or create a field, or if you upload one first.
                   </div>
                 )}
               </div>
             </label>
-
             <input
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
-              onChange={(e) =>
-                setForm({ ...form, certificate: e.target.files[0] })
-              }
+              onChange={(e) => setForm({ ...form, certificate: e.target.files[0] })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer"
             />
           </div>
 
+          {/* Register Button - disabled until payment is done */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+            disabled={!paymentDone}
+            className={`w-full py-2 rounded-lg transition ${
+              paymentDone
+                ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                : "bg-gray-400 text-gray-200 cursor-not-allowed"
+            }`}
           >
             Register
           </button>
         </form>
+
+        {/* Payment Section */}
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-center text-gray-800 mb-4">
+            Registration Fee: ₹500
+          </h2>
+
+          <form onSubmit={handlePayment} className="space-y-3">
+            <input
+              type="text"
+              placeholder="Enter UPI ID (e.g. name@upi)"
+              value={upiID}
+              onChange={(e) => setUpiID(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400 outline-none"
+            />
+
+            <select
+              value={bank}
+              onChange={(e) => setBank(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400 outline-none"
+            >
+              <option value="">Select Bank</option>
+              <option value="SBI">State Bank of India</option>
+              <option value="HDFC">HDFC Bank</option>
+              <option value="ICICI">ICICI Bank</option>
+              <option value="Axis">Axis Bank</option>
+              <option value="PNB">Punjab National Bank</option>
+            </select>
+
+            <button
+              type="submit"
+              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+            >
+              Pay Now
+            </button>
+          </form>
+
+          {paymentStatus && (
+            <p
+              className={`mt-3 text-center text-sm ${
+                paymentStatus.includes("successful")
+                  ? "text-green-600 font-semibold"
+                  : "text-red-500"
+              }`}
+            >
+              {paymentStatus}
+            </p>
+          )}
+        </div>
 
         <p className="text-center text-gray-600 mt-4">
           Already have an account?{" "}
